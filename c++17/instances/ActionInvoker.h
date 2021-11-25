@@ -84,6 +84,17 @@ namespace action_invoker
 			_deferred_continous_actions.emplace_back(ContinousActionStruct{ action,time_s.value,duration_s });
 		}
 
+		void removeAllActions()
+		{
+			_deferred_actions.clear();
+			_deferred_continous_actions.clear();
+		}
+
+		void reset()
+		{
+			removeAllActions();
+			_currentTime = 0.0;
+		}
 
 	private:
 
