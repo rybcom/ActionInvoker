@@ -31,32 +31,69 @@ namespace action_invoker
 		bool is_running{ false };
 	};
 
+	struct DeltaTime
+	{
+		double value{ 0.0 };
+	};
+
+	struct GlobalTime
+	{
+		double value{ 0.0 };
+	};
+
 	class ActionInvoker
 	{
 	public:
 
-		void update(double currentTime)
+		void update(GlobalTime global_time_s)
 		{
-			_currentTime = currentTime;
+			_currentTime = global_time_s.value;
+			updateInternal();
+		}
 
+		void update(DeltaTime delta_time_s)
+		{
+			_currentTime += delta_time_s.value;
+			updateInternal();
+		}
+
+		bool containsDeferredActions() const
+		{
+			return _deferred_actions.empty() == false || _deferred_continous_actions.empty() == false;
+		}
+
+		void addDeferredAction(Action action, DeltaTime in_delta_time_s)
+		{
+			double time_s = _currentTime + in_delta_time_s.value;
+			_deferred_actions.emplace_back(ActionStruct{ action,time_s });
+		}
+
+		void addDeferredAction(Action action, GlobalTime time_s)
+		{
+			_deferred_actions.emplace_back(ActionStruct{ action,time_s.value });
+		}
+
+		void addContinuousDeferredAction(ContinousAction action, DeltaTime in_delta_time_s, double duration_s)
+		{
+			double time_s = _currentTime + in_delta_time_s.value;
+			_deferred_continous_actions.emplace_back(ContinousActionStruct{ action,time_s,duration_s });
+		}
+
+		void addContinuousDeferredAction(ContinousAction action, GlobalTime time_s, double duration_s)
+		{
+			_deferred_continous_actions.emplace_back(ContinousActionStruct{ action,time_s.value,duration_s });
+		}
+
+	private:
+
+		void updateInternal()
+		{
 			std::ranges::for_each(_deferred_actions, std::bind(&ActionInvoker::executeActionIfExpired, this, std::placeholders::_1));
 			std::erase_if(_deferred_actions, std::bind(&ActionInvoker::actionExpired, this, std::placeholders::_1));
 
 			std::ranges::for_each(_deferred_continous_actions, std::bind(&ActionInvoker::executeActionIfIsInProgress, this, std::placeholders::_1));
 			std::erase_if(_deferred_continous_actions, std::bind(&ActionInvoker::continuousActionExpired, this, std::placeholders::_1));
 		}
-
-		void addDeferredAction(Action action, double time_s)
-		{
-			_deferred_actions.emplace_back(ActionStruct{ action,time_s });
-		}
-
-		void addContinuousDeferredAction(ContinousAction action, double time_s, double duration_s)
-		{
-			_deferred_continous_actions.emplace_back(ContinousActionStruct{ action,time_s,duration_s });
-		}
-
-	private:
 
 		bool actionExpired(ActionStruct const& action)
 		{

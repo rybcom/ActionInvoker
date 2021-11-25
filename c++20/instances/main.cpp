@@ -40,11 +40,12 @@ namespace actions
 
 void create_actions(action_invoker::ActionInvoker& invoker)
 {
+	using namespace action_invoker;
 	using namespace actions;
 
-	invoker.addDeferredAction(action_hello, 1);
-	invoker.addDeferredAction(action_first, 2);
-	invoker.addContinuousDeferredAction(continuous_action_test, 3, 5);
+	invoker.addDeferredAction(action_hello, GlobalTime{ 1.0 });
+	invoker.addDeferredAction(action_first, GlobalTime{ 2.0 });
+	invoker.addContinuousDeferredAction(continuous_action_test, GlobalTime{ 3.0 }, 5);
 }
 
 int main()
@@ -55,13 +56,10 @@ int main()
 	create_actions(invoker);
 
 	using namespace std::chrono_literals;
-	double time_s{ 0 };
 
-	while (time_s < 100)
+	while (invoker.containsDeferredActions())
 	{
 		std::this_thread::sleep_for(0.0166666666666s);
-		time_s += 0.0166666666666;
-
-		invoker.update(time_s);
+		invoker.update(DeltaTime{ 0.016666666667 });
 	}
 }
